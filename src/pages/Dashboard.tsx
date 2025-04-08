@@ -147,7 +147,7 @@ const Dashboard = () => {
           <CardContent>
             <div className="space-y-4">
               {savingsGoals.map((goal) => (
-                <div key={goal.id} className="space-y-1">
+                <div key={goal._id} className="space-y-1">
                   <div className="flex items-center justify-between">
                     <span>{goal.name}</span>
                     <span className="text-sm">
@@ -189,7 +189,7 @@ const Dashboard = () => {
         <CardContent>
           <div className="space-y-4">
             {transactions.slice(0, 5).map((transaction) => (
-              <div key={transaction.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              <div key={transaction._id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                 <div>
                   <p className="font-medium">{transaction.description}</p>
                   <p className="text-sm text-muted-foreground">{transaction.category}</p>

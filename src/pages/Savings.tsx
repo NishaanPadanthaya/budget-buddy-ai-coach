@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { 
   BarChart3, 
@@ -72,7 +73,7 @@ const GoalCard = ({ goal, onContribute }: GoalCardProps) => {
       return;
     }
     
-    onContribute(goal.id, contributionAmount);
+    onContribute(goal._id, contributionAmount);
     setAmount("");
     setIsContributing(false);
     
@@ -107,7 +108,6 @@ const GoalCard = ({ goal, onContribute }: GoalCardProps) => {
               value={progress} 
               className="h-2" 
               style={{ backgroundColor: `${goal.color}40` }} 
-              indicatorColor={goal.color}
             />
           </div>
           
@@ -242,6 +242,7 @@ const SavingsGoalForm = ({ onClose }: { onClose: () => void }) => {
       currentAmount: starting,
       date: selectedDate,
       color: selectedColor,
+      userId: "6452a8d2e4b0a7c3d9f0b1a2" // Using TEMP_USER_ID
     });
     
     toast({
@@ -412,7 +413,7 @@ const Savings = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {savingsGoals.map((goal) => (
             <GoalCard 
-              key={goal.id} 
+              key={goal._id} 
               goal={goal} 
               onContribute={updateSavingsGoal}
             />

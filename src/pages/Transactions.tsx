@@ -87,6 +87,7 @@ const TransactionForm = ({ onClose }: { onClose: () => void }) => {
       category,
       description,
       aiCategorized: false,
+      userId: "6452a8d2e4b0a7c3d9f0b1a2" // Using TEMP_USER_ID
     });
 
     toast({
@@ -268,7 +269,7 @@ const Transactions = () => {
             ) : (
               filteredTransactions.map((transaction) => (
                 <div 
-                  key={transaction.id} 
+                  key={transaction._id} 
                   className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border-l-4" 
                   style={{ borderLeftColor: transaction.amount < 0 ? '#f87171' : '#34d399' }}
                 >
