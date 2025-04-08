@@ -1,157 +1,164 @@
 
-import React, { createContext, useState, useContext, ReactNode } from "react";
+import React, { createContext, useState, useContext, ReactNode, useEffect } from "react";
+import axios from "axios";
 
-// Mock data for initial state
-const initialTransactions = [
-  {
-    id: "1",
-    date: new Date(2025, 3, 1),
-    amount: -85.25,
-    category: "Food & Dining",
-    description: "Grocery Store",
-    aiCategorized: true
-  },
-  {
-    id: "2",
-    date: new Date(2025, 3, 2),
-    amount: -45.00,
-    category: "Entertainment",
-    description: "Movie Tickets",
-    aiCategorized: true
-  },
-  {
-    id: "3",
-    date: new Date(2025, 3, 3),
-    amount: -125.50,
-    category: "Shopping",
-    description: "Department Store",
-    aiCategorized: true
-  },
-  {
-    id: "4",
-    date: new Date(2025, 3, 4),
-    amount: 2400.00,
-    category: "Income",
-    description: "Salary Deposit",
-    aiCategorized: false
-  },
-  {
-    id: "5",
-    date: new Date(2025, 3, 5),
-    amount: -55.20,
-    category: "Transportation",
-    description: "Gas Station",
-    aiCategorized: true
-  },
-  {
-    id: "6",
-    date: new Date(2025, 3, 6),
-    amount: -22.50,
-    category: "Food & Dining",
-    description: "Coffee Shop",
-    aiCategorized: true
-  },
-  {
-    id: "7",
-    date: new Date(2025, 3, 7),
-    amount: -750.00,
-    category: "Housing",
-    description: "Rent Payment",
-    aiCategorized: false
-  }
-];
-
-const initialSavingsGoals = [
-  {
-    id: "1",
-    name: "Emergency Fund",
-    targetAmount: 10000,
-    currentAmount: 2500,
-    date: new Date(2025, 9, 1),
-    color: "#14B8A6"
-  },
-  {
-    id: "2",
-    name: "Vacation",
-    targetAmount: 3000,
-    currentAmount: 750,
-    date: new Date(2025, 7, 15),
-    color: "#0D9488"
-  },
-  {
-    id: "3",
-    name: "New Laptop",
-    targetAmount: 1500,
-    currentAmount: 900,
-    date: new Date(2025, 5, 20),
-    color: "#0F766E"
-  }
-];
+const API_URL = "http://localhost:5000/api";
 
 export type Transaction = {
-  id: string;
+  _id: string;
   date: Date;
   amount: number;
   category: string;
   description: string;
   aiCategorized?: boolean;
+  userId: string;
 };
 
 export type SavingsGoal = {
-  id: string;
+  _id: string;
   name: string;
   targetAmount: number;
   currentAmount: number;
   date: Date;
   color: string;
+  userId: string;
 };
 
 type BudgetContextType = {
   balance: number;
   transactions: Transaction[];
   savingsGoals: SavingsGoal[];
-  addTransaction: (transaction: Omit<Transaction, "id">) => void;
-  addSavingsGoal: (goal: Omit<SavingsGoal, "id">) => void;
+  addTransaction: (transaction: Omit<Transaction, "_id">) => void;
+  addSavingsGoal: (goal: Omit<SavingsGoal, "_id">) => void;
   updateSavingsGoal: (id: string, amount: number) => void;
+  fetchTransactions: () => void;
+  fetchSavingsGoals: () => void;
+  isLoading: boolean;
+  error: string | null;
 };
 
 const BudgetContext = createContext<BudgetContextType | undefined>(undefined);
 
+// Temporary user ID - in a real app, this would come from authentication
+const TEMP_USER_ID = "6452a8d2e4b0a7c3d9f0b1a2";
+
 export const BudgetProvider = ({ children }: { children: ReactNode }) => {
-  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
-  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>(initialSavingsGoals);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Calculate current balance from transactions
   const balance = transactions.reduce((total, transaction) => total + transaction.amount, 0);
 
+  // Fetch transactions from API
+  const fetchTransactions = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get(`${API_URL}/transactions/${TEMP_USER_ID}`);
+      const transactionsWithDates = response.data.map((transaction: any) => ({
+        ...transaction,
+        date: new Date(transaction.date)
+      }));
+      setTransactions(transactionsWithDates);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Error fetching transactions");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch savings goals from API
+  const fetchSavingsGoals = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get(`${API_URL}/savings/${TEMP_USER_ID}`);
+      const goalsWithDates = response.data.map((goal: any) => ({
+        ...goal,
+        date: new Date(goal.date)
+      }));
+      setSavingsGoals(goalsWithDates);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Error fetching savings goals");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Add new transaction
-  const addTransaction = (transaction: Omit<Transaction, "id">) => {
-    const newTransaction = {
-      ...transaction,
-      id: crypto.randomUUID(),
-    };
-    setTransactions([newTransaction, ...transactions]);
+  const addTransaction = async (transaction: Omit<Transaction, "_id">) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await axios.post(`${API_URL}/transactions`, {
+        ...transaction,
+        userId: TEMP_USER_ID
+      });
+      const newTransaction = {
+        ...response.data,
+        date: new Date(response.data.date)
+      };
+      setTransactions(prev => [newTransaction, ...prev]);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Error adding transaction");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Add new savings goal
-  const addSavingsGoal = (goal: Omit<SavingsGoal, "id">) => {
-    const newGoal = {
-      ...goal,
-      id: crypto.randomUUID(),
-    };
-    setSavingsGoals([...savingsGoals, newGoal]);
+  const addSavingsGoal = async (goal: Omit<SavingsGoal, "_id">) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await axios.post(`${API_URL}/savings`, {
+        ...goal,
+        userId: TEMP_USER_ID
+      });
+      const newGoal = {
+        ...response.data,
+        date: new Date(response.data.date)
+      };
+      setSavingsGoals(prev => [...prev, newGoal]);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Error adding savings goal");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Update savings goal amount
-  const updateSavingsGoal = (id: string, amount: number) => {
-    setSavingsGoals(
-      savingsGoals.map((goal) =>
-        goal.id === id
-          ? { ...goal, currentAmount: Math.min(goal.currentAmount + amount, goal.targetAmount) }
-          : goal
-      )
-    );
+  const updateSavingsGoal = async (id: string, amount: number) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await axios.patch(`${API_URL}/savings/${id}`, { amount });
+      const updatedGoal = {
+        ...response.data,
+        date: new Date(response.data.date)
+      };
+      setSavingsGoals(prev => 
+        prev.map(goal => goal._id === id ? updatedGoal : goal)
+      );
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Error updating savings goal");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  // Load initial data
+  useEffect(() => {
+    fetchTransactions();
+    fetchSavingsGoals();
+  }, []);
 
   return (
     <BudgetContext.Provider
@@ -162,6 +169,10 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
         addTransaction,
         addSavingsGoal,
         updateSavingsGoal,
+        fetchTransactions,
+        fetchSavingsGoals,
+        isLoading,
+        error
       }}
     >
       {children}

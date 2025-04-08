@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Send, Sparkles, Bot, User, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,59 +5,23 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBudget } from "@/context/BudgetContext";
+import axios from "axios";
+
+const API_URL = "http://localhost:5000/api";
+const TEMP_USER_ID = "6452a8d2e4b0a7c3d9f0b1a2";
 
 type Message = {
-  id: string;
+  _id: string;
   content: string;
   sender: "user" | "assistant";
   timestamp: Date;
 };
 
-// Sample welcome message
 const welcomeMessage: Message = {
-  id: "welcome",
+  _id: "welcome",
   content: "Hi there! I'm your Budget Buddy AI Assistant. How can I help with your finances today? You can ask me for spending insights, savings advice, or budgeting tips.",
   sender: "assistant",
   timestamp: new Date(),
-};
-
-// Sample responses for the AI assistant
-const sampleResponses: Record<string, string> = {
-  spending: "Based on your recent transactions, your highest spending category is Food & Dining at $107.75 this month. This is about 15% higher than last month. Would you like some tips on how to reduce your food expenses?",
-  budget: "Looking at your spending patterns, I recommend allocating 50% of your income to necessities, 30% to discretionary spending, and 20% to savings. Based on your income, that would be $1,200 for necessities, $720 for wants, and $480 for savings each month.",
-  savings: "You're making great progress on your Emergency Fund goal! At your current rate, you'll reach your target in about 5 months. To speed this up, consider setting up an automatic weekly transfer of $50, which would help you reach your goal 6 weeks sooner.",
-  investing: "For beginning investors, I recommend starting with low-cost index funds or ETFs. These provide broad market exposure with minimal fees. Based on your savings goals and risk profile, a mix of 70% stock funds and 30% bond funds could be appropriate.",
-  debt: "Looking at your accounts, focusing on paying off your credit card debt first would save you the most money due to its high interest rate of 18%. If you can increase your monthly payment by just $50, you could be debt-free 8 months sooner and save $320 in interest.",
-  default: "I'll analyze your financial data to provide personalized insights. To give you the most accurate advice, I'd need to know more about your specific financial situation and goals. What aspect of your finances would you like help with?"
-};
-
-const getAIResponse = (message: string): Promise<string> => {
-  // This function simulates AI response generation
-  return new Promise((resolve) => {
-    // Convert message to lowercase for easy matching
-    const lowercaseMessage = message.toLowerCase();
-    
-    // Check for keywords to determine response
-    let response = "";
-    if (lowercaseMessage.includes("spend") || lowercaseMessage.includes("spending") || lowercaseMessage.includes("expense")) {
-      response = sampleResponses.spending;
-    } else if (lowercaseMessage.includes("budget") || lowercaseMessage.includes("allocation")) {
-      response = sampleResponses.budget;
-    } else if (lowercaseMessage.includes("save") || lowercaseMessage.includes("saving") || lowercaseMessage.includes("goal")) {
-      response = sampleResponses.savings;
-    } else if (lowercaseMessage.includes("invest") || lowercaseMessage.includes("stock") || lowercaseMessage.includes("fund")) {
-      response = sampleResponses.investing;
-    } else if (lowercaseMessage.includes("debt") || lowercaseMessage.includes("loan") || lowercaseMessage.includes("credit")) {
-      response = sampleResponses.debt;
-    } else {
-      response = sampleResponses.default;
-    }
-    
-    // Simulate network delay
-    setTimeout(() => {
-      resolve(response);
-    }, 1000);
-  });
 };
 
 const BudgetAssistant = () => {
@@ -68,7 +31,6 @@ const BudgetAssistant = () => {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Suggested questions for the user
   const suggestedQuestions = [
     "How am I spending this month?",
     "What should my budget look like?",
@@ -76,6 +38,25 @@ const BudgetAssistant = () => {
     "How should I start investing?",
     "What's the best way to pay off my debt?"
   ];
+
+  const fetchMessages = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/assistant/${TEMP_USER_ID}`);
+      if (response.data.length > 0) {
+        const formattedMessages = response.data.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+        setMessages([welcomeMessage, ...formattedMessages]);
+      }
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchMessages();
+  }, []);
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -88,37 +69,41 @@ const BudgetAssistant = () => {
   const handleSendMessage = async () => {
     if (!newMessage.trim() || isLoading) return;
     
-    // Add user message
-    const userMessage: Message = {
-      id: crypto.randomUUID(),
+    const tempUserMessage: Message = {
+      _id: `temp-${Date.now()}`,
       content: newMessage,
       sender: "user",
       timestamp: new Date(),
     };
     
-    setMessages([...messages, userMessage]);
+    setMessages([...messages, tempUserMessage]);
     setNewMessage("");
     setIsLoading(true);
     
     try {
-      // Get AI response
-      const response = await getAIResponse(newMessage);
+      const response = await axios.post(`${API_URL}/assistant`, {
+        content: newMessage,
+        userId: TEMP_USER_ID
+      });
       
-      // Add AI response
-      const assistantMessage: Message = {
-        id: crypto.randomUUID(),
-        content: response,
-        sender: "assistant",
-        timestamp: new Date(),
-      };
-      
-      setMessages((prev) => [...prev, assistantMessage]);
+      setMessages(prev => {
+        const filtered = prev.filter(msg => msg._id !== tempUserMessage._id);
+        return [...filtered, 
+          {
+            ...response.data.userMessage,
+            timestamp: new Date(response.data.userMessage.timestamp)
+          },
+          {
+            ...response.data.aiMessage,
+            timestamp: new Date(response.data.aiMessage.timestamp)
+          }
+        ];
+      });
     } catch (error) {
-      console.error("Error getting AI response:", error);
+      console.error("Error sending message:", error);
       
-      // Add error message
       const errorMessage: Message = {
-        id: crypto.randomUUID(),
+        _id: crypto.randomUUID(),
         content: "Sorry, I couldn't process your request. Please try again.",
         sender: "assistant",
         timestamp: new Date(),
@@ -166,7 +151,7 @@ const BudgetAssistant = () => {
           <div className="space-y-4 mb-4">
             {messages.map((message) => (
               <div
-                key={message.id}
+                key={message._id}
                 className={`flex ${
                   message.sender === "user" ? "justify-end" : "justify-start"
                 }`}
