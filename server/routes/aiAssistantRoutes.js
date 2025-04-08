@@ -4,14 +4,11 @@ const router = express.Router();
 const Message = require('../models/Message');
 const Transaction = require('../models/Transaction');
 const SavingsGoal = require('../models/SavingsGoal');
-const { ChatOpenAI } = require('@langchain/openai');
-const { MongoDBAtlasVectorSearch } = require('@langchain/mongodb');
+const Groq = require('groq-sdk');
 
-// Initialize the OpenAI chat model
-const chatModel = new ChatOpenAI({
-  modelName: "gpt-4o",
-  temperature: 0.7,
-  openAIApiKey: process.env.OPENAI_API_KEY,
+// Initialize Groq client
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY
 });
 
 // Get messages for a user
@@ -20,6 +17,7 @@ router.get('/:userId', async (req, res) => {
     const messages = await Message.find({ userId: req.params.userId }).sort({ timestamp: 1 });
     res.json(messages);
   } catch (err) {
+    console.error('Error fetching messages:', err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -61,15 +59,28 @@ router.post('/', async (req, res) => {
       })))}
     `;
     
-    // Generate AI response using the chat model
-    const response = await chatModel.invoke([
-      { role: "system", content: `You are Budget Buddy, an AI financial assistant. Your goal is to help users manage their finances, provide insights on spending habits, and offer savings advice. Here is the user's current financial context: ${financialContext}` },
-      { role: "user", content }
-    ]);
+    // Generate AI response using Groq
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `You are Budget Buddy, an AI financial assistant. Your goal is to help users manage their finances, provide insights on spending habits, and offer savings advice. Here is the user's current financial context: ${financialContext}`
+        },
+        {
+          role: "user",
+          content: content
+        }
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.7,
+      max_tokens: 1000,
+    });
+    
+    const aiResponse = completion.choices[0]?.message?.content || "I'm sorry, I couldn't process your request.";
     
     // Save AI response
     const aiMessage = new Message({
-      content: response.content,
+      content: aiResponse,
       sender: 'assistant',
       userId
     });
@@ -81,7 +92,7 @@ router.post('/', async (req, res) => {
       aiMessage
     });
   } catch (err) {
-    console.error(err);
+    console.error('Error processing message:', err);
     res.status(500).json({ message: err.message });
   }
 });
