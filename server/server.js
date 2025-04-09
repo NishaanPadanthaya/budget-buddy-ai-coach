@@ -11,6 +11,7 @@ dotenv.config();
 const transactionRoutes = require('./routes/transactionRoutes');
 const savingsRoutes = require('./routes/savingsRoutes');
 const aiAssistantRoutes = require('./routes/aiAssistantRoutes');
+const { router: authRoutes, verifyToken } = require('./routes/authRoutes');
 
 // Initialize express
 const app = express();
@@ -20,15 +21,16 @@ app.use(cors());
 app.use(express.json());
 
 // Connect to MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/budget-buddy';
+const MONGODB_URI = process.env.MONGODB_URI;
 mongoose.connect(MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
+  .then(() => console.log('Connected to MongoDB Atlas'))
   .catch(err => {
     console.error('Could not connect to MongoDB', err);
     process.exit(1); // Exit if can't connect to database
   });
 
-// Enable API routes without auth
+// Enable API routes
+app.use('/api/auth', authRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/savings', savingsRoutes);
 app.use('/api/assistant', aiAssistantRoutes);

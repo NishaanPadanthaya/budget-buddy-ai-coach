@@ -1,14 +1,21 @@
 
-import { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, Bot, User, Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect } from "react";
+import { Send, Sparkles, Bot, User, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBudget } from "@/context/BudgetContext";
+import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
 
 const API_URL = "http://localhost:5000/api";
-const TEMP_USER_ID = "6452a8d2e4b0a7c3d9f0b1a2";
+
+type Message = {
+  _id: string;
+  content: string;
+  sender: 'user' | 'assistant';
+  timestamp: Date;
+};
 
 const welcomeMessage = {
   _id: "welcome",
@@ -19,10 +26,11 @@ const welcomeMessage = {
 
 const BudgetAssistant = () => {
   const { balance, transactions, savingsGoals } = useBudget();
-  const [messages, setMessages] = useState([welcomeMessage]);
-  const [newMessage, setNewMessage] = useState('');
+  const { user } = useAuth();
+  const [messages, setMessages] = useState<Message[]>([welcomeMessage]);
+  const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const suggestedQuestions = [
     "How am I spending this month?",
@@ -34,9 +42,9 @@ const BudgetAssistant = () => {
 
   const fetchMessages = async () => {
     try {
-      const response = await axios.get(`${API_URL}/assistant/${TEMP_USER_ID}`);
+      const response = await axios.get(`${API_URL}/assistant`);
       if (response.data.length > 0) {
-        const formattedMessages = response.data.map(msg => ({
+        const formattedMessages = response.data.map((msg: any) => ({
           ...msg,
           timestamp: new Date(msg.timestamp)
         }));
@@ -70,17 +78,16 @@ const BudgetAssistant = () => {
     };
 
     setMessages([...messages, tempUserMessage]);
-    setNewMessage('');
+    setNewMessage("");
     setIsLoading(true);
 
     try {
       const response = await axios.post(`${API_URL}/assistant`, {
-        content: newMessage,
-        userId: TEMP_USER_ID
+        content: newMessage
       });
 
-      setMessages(prev => {
-        const filtered = prev.filter(msg => msg._id !== tempUserMessage._id);
+      setMessages((prev) => {
+        const filtered = prev.filter((msg) => msg._id !== tempUserMessage._id);
         return [
           ...filtered,
           {
@@ -101,20 +108,20 @@ const BudgetAssistant = () => {
         sender: "assistant",
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
   };
 
-  const handleSuggestedQuestion = (question) => {
+  const handleSuggestedQuestion = (question: string) => {
     setNewMessage(question);
   };
 
@@ -132,31 +139,41 @@ const BudgetAssistant = () => {
             </div>
             <div>
               <h2 className="font-medium">Budget Buddy AI</h2>
-              <p className="text-sm text-muted-foreground">Powered by AI to help you manage your finances</p>
+              <p className="text-sm text-muted-foreground">
+                Powered by AI to help you manage your finances
+              </p>
             </div>
           </div>
         </div>
 
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4 mb-4">
-            {messages.map(message => (
-              <div 
-                key={message._id} 
-                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+            {messages.map((message) => (
+              <div
+                key={message._id}
+                className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
               >
-                <div className={`flex max-w-[80%] items-start gap-3 ${message.sender === 'user' ? 'flex-row-reverse' : ''}`}>
-                  <div className={`flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-md ${
-                    message.sender === 'user' ? 'bg-accent' : 'bg-budget-primary'
-                  }`}>
-                    {message.sender === 'user' ? (
+                <div
+                  className={`flex max-w-[80%] items-start gap-3 ${
+                    message.sender === "user" ? "flex-row-reverse" : ""
+                  }`}
+                >
+                  <div
+                    className={`flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-md ${
+                      message.sender === "user" ? "bg-accent" : "bg-budget-primary"
+                    }`}
+                  >
+                    {message.sender === "user" ? (
                       <User className="h-5 w-5 text-accent-foreground" />
                     ) : (
                       <Bot className="h-5 w-5 text-primary-foreground" />
                     )}
                   </div>
-                  <div className={`rounded-lg px-4 py-3 text-sm ${
-                    message.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                  }`}>
+                  <div
+                    className={`rounded-lg px-4 py-3 text-sm ${
+                      message.sender === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
+                    }`}
+                  >
                     {message.content}
                   </div>
                 </div>
@@ -208,10 +225,7 @@ const BudgetAssistant = () => {
               onKeyDown={handleKeyDown}
               className="flex-1"
             />
-            <Button
-              onClick={handleSendMessage}
-              disabled={!newMessage.trim() || isLoading}
-            >
+            <Button onClick={handleSendMessage} disabled={!newMessage.trim() || isLoading}>
               <Send className="h-4 w-4" />
             </Button>
           </div>

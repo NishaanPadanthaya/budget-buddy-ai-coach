@@ -2,11 +2,12 @@
 const express = require('express');
 const router = express.Router();
 const Transaction = require('../models/Transaction');
+const { verifyToken } = require('./authRoutes');
 
-// Get all transactions for a user
-router.get('/:userId', async (req, res) => {
+// Get all transactions for a user (protected route)
+router.get('/', verifyToken, async (req, res) => {
   try {
-    const transactions = await Transaction.find({ userId: req.params.userId })
+    const transactions = await Transaction.find({ userId: req.user.id })
       .sort({ date: -1 });
     res.json(transactions);
   } catch (err) {
@@ -15,17 +16,17 @@ router.get('/:userId', async (req, res) => {
   }
 });
 
-// Add new transaction
-router.post('/', async (req, res) => {
+// Add new transaction (protected route)
+router.post('/', verifyToken, async (req, res) => {
   try {
-    const { amount, category, description, date, userId } = req.body;
+    const { amount, category, description, date } = req.body;
     
     const newTransaction = new Transaction({
       amount,
       category,
       description,
       date: date || new Date(),
-      userId
+      userId: req.user.id
     });
     
     const savedTransaction = await newTransaction.save();
@@ -36,15 +37,21 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Delete transaction
-router.delete('/:id', async (req, res) => {
+// Delete transaction (protected route)
+router.delete('/:id', verifyToken, async (req, res) => {
   try {
-    const transaction = await Transaction.findByIdAndDelete(req.params.id);
+    const transaction = await Transaction.findById(req.params.id);
     
     if (!transaction) {
       return res.status(404).json({ message: 'Transaction not found' });
     }
     
+    // Verify user owns this transaction
+    if (transaction.userId.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'Not authorized to delete this transaction' });
+    }
+    
+    await Transaction.findByIdAndDelete(req.params.id);
     res.json({ message: 'Transaction deleted' });
   } catch (err) {
     console.error('Error deleting transaction:', err);

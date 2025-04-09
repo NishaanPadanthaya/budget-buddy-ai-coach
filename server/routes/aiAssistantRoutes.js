@@ -3,14 +3,15 @@ const express = require('express');
 const router = express.Router();
 const Message = require('../models/Message');
 const Groq = require('groq-sdk');
+const { verifyToken } = require('./authRoutes');
 
 // Initialize Groq client
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// Get all messages for a user
-router.get('/:userId', async (req, res) => {
+// Get all messages for the authenticated user
+router.get('/', verifyToken, async (req, res) => {
   try {
-    const messages = await Message.find({ userId: req.params.userId })
+    const messages = await Message.find({ userId: req.user.id })
       .sort({ timestamp: 1 });
     res.json(messages);
   } catch (err) {
@@ -20,22 +21,22 @@ router.get('/:userId', async (req, res) => {
 });
 
 // Send message to AI assistant
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
   try {
-    const { content, userId } = req.body;
+    const { content } = req.body;
     
     // Save user message
     const userMessage = new Message({
       content,
       sender: 'user',
-      userId,
+      userId: req.user.id,
       timestamp: new Date()
     });
     
     const savedUserMessage = await userMessage.save();
     
     // Get conversation history
-    const previousMessages = await Message.find({ userId })
+    const previousMessages = await Message.find({ userId: req.user.id })
       .sort({ timestamp: 1 })
       .limit(10);
     
@@ -64,7 +65,7 @@ router.post('/', async (req, res) => {
     const aiMessage = new Message({
       content: aiResponse,
       sender: 'assistant',
-      userId,
+      userId: req.user.id,
       timestamp: new Date()
     });
     

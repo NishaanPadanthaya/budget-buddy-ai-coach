@@ -2,11 +2,12 @@
 const express = require('express');
 const router = express.Router();
 const SavingsGoal = require('../models/SavingsGoal');
+const { verifyToken } = require('./authRoutes');
 
-// Get all savings goals for a user
-router.get('/:userId', async (req, res) => {
+// Get all savings goals for a user (protected route)
+router.get('/', verifyToken, async (req, res) => {
   try {
-    const goals = await SavingsGoal.find({ userId: req.params.userId });
+    const goals = await SavingsGoal.find({ userId: req.user.id });
     res.json(goals);
   } catch (err) {
     console.error('Error fetching savings goals:', err);
@@ -14,10 +15,10 @@ router.get('/:userId', async (req, res) => {
   }
 });
 
-// Add new savings goal
-router.post('/', async (req, res) => {
+// Add new savings goal (protected route)
+router.post('/', verifyToken, async (req, res) => {
   try {
-    const { name, targetAmount, currentAmount, date, color, userId } = req.body;
+    const { name, targetAmount, currentAmount, date, color } = req.body;
     
     const newGoal = new SavingsGoal({
       name,
@@ -25,7 +26,7 @@ router.post('/', async (req, res) => {
       currentAmount: currentAmount || 0,
       date: date || new Date(),
       color,
-      userId
+      userId: req.user.id
     });
     
     const savedGoal = await newGoal.save();
@@ -36,8 +37,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update savings goal amount
-router.patch('/:id', async (req, res) => {
+// Update savings goal amount (protected route)
+router.patch('/:id', verifyToken, async (req, res) => {
   try {
     const { amount } = req.body;
     
@@ -45,6 +46,11 @@ router.patch('/:id', async (req, res) => {
     
     if (!goal) {
       return res.status(404).json({ message: 'Savings goal not found' });
+    }
+    
+    // Verify user owns this goal
+    if (goal.userId.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'Not authorized to update this goal' });
     }
     
     goal.currentAmount = amount;
@@ -57,15 +63,21 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
-// Delete savings goal
-router.delete('/:id', async (req, res) => {
+// Delete savings goal (protected route)
+router.delete('/:id', verifyToken, async (req, res) => {
   try {
-    const goal = await SavingsGoal.findByIdAndDelete(req.params.id);
+    const goal = await SavingsGoal.findById(req.params.id);
     
     if (!goal) {
       return res.status(404).json({ message: 'Savings goal not found' });
     }
     
+    // Verify user owns this goal
+    if (goal.userId.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'Not authorized to delete this goal' });
+    }
+    
+    await SavingsGoal.findByIdAndDelete(req.params.id);
     res.json({ message: 'Savings goal deleted' });
   } catch (err) {
     console.error('Error deleting savings goal:', err);

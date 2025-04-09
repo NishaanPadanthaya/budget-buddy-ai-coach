@@ -1,6 +1,8 @@
 
 import React, { createContext, useState, useContext, ReactNode, useEffect } from "react";
 import axios from "axios";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "@/hooks/use-toast";
 
 const API_URL = "http://localhost:5000/api";
 
@@ -28,8 +30,8 @@ type BudgetContextType = {
   balance: number;
   transactions: Transaction[];
   savingsGoals: SavingsGoal[];
-  addTransaction: (transaction: Omit<Transaction, "_id">) => void;
-  addSavingsGoal: (goal: Omit<SavingsGoal, "_id">) => void;
+  addTransaction: (transaction: Omit<Transaction, "_id" | "userId">) => void;
+  addSavingsGoal: (goal: Omit<SavingsGoal, "_id" | "userId">) => void;
   updateSavingsGoal: (id: string, amount: number) => void;
   fetchTransactions: () => void;
   fetchSavingsGoals: () => void;
@@ -39,10 +41,8 @@ type BudgetContextType = {
 
 const BudgetContext = createContext<BudgetContextType | undefined>(undefined);
 
-// Temporary user ID - in a real app, this would come from authentication
-const TEMP_USER_ID = "6452a8d2e4b0a7c3d9f0b1a2";
-
 export const BudgetProvider = ({ children }: { children: ReactNode }) => {
+  const { isAuthenticated } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -53,17 +53,25 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
 
   // Fetch transactions from API
   const fetchTransactions = async () => {
+    if (!isAuthenticated) return;
+    
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`${API_URL}/transactions/${TEMP_USER_ID}`);
+      const response = await axios.get(`${API_URL}/transactions`);
       const transactionsWithDates = response.data.map((transaction: any) => ({
         ...transaction,
         date: new Date(transaction.date)
       }));
       setTransactions(transactionsWithDates);
     } catch (err: any) {
-      setError(err.response?.data?.message || "Error fetching transactions");
+      const errorMessage = err.response?.data?.message || "Error fetching transactions";
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -72,17 +80,25 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
 
   // Fetch savings goals from API
   const fetchSavingsGoals = async () => {
+    if (!isAuthenticated) return;
+    
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`${API_URL}/savings/${TEMP_USER_ID}`);
+      const response = await axios.get(`${API_URL}/savings`);
       const goalsWithDates = response.data.map((goal: any) => ({
         ...goal,
         date: new Date(goal.date)
       }));
       setSavingsGoals(goalsWithDates);
     } catch (err: any) {
-      setError(err.response?.data?.message || "Error fetching savings goals");
+      const errorMessage = err.response?.data?.message || "Error fetching savings goals";
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -90,21 +106,28 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Add new transaction
-  const addTransaction = async (transaction: Omit<Transaction, "_id">) => {
+  const addTransaction = async (transaction: Omit<Transaction, "_id" | "userId">) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.post(`${API_URL}/transactions`, {
-        ...transaction,
-        userId: TEMP_USER_ID
-      });
+      const response = await axios.post(`${API_URL}/transactions`, transaction);
       const newTransaction = {
         ...response.data,
         date: new Date(response.data.date)
       };
       setTransactions(prev => [newTransaction, ...prev]);
+      toast({
+        title: "Success",
+        description: "Transaction added successfully",
+      });
     } catch (err: any) {
-      setError(err.response?.data?.message || "Error adding transaction");
+      const errorMessage = err.response?.data?.message || "Error adding transaction";
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -112,21 +135,28 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Add new savings goal
-  const addSavingsGoal = async (goal: Omit<SavingsGoal, "_id">) => {
+  const addSavingsGoal = async (goal: Omit<SavingsGoal, "_id" | "userId">) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.post(`${API_URL}/savings`, {
-        ...goal,
-        userId: TEMP_USER_ID
-      });
+      const response = await axios.post(`${API_URL}/savings`, goal);
       const newGoal = {
         ...response.data,
         date: new Date(response.data.date)
       };
       setSavingsGoals(prev => [...prev, newGoal]);
+      toast({
+        title: "Success",
+        description: "Savings goal added successfully",
+      });
     } catch (err: any) {
-      setError(err.response?.data?.message || "Error adding savings goal");
+      const errorMessage = err.response?.data?.message || "Error adding savings goal";
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -146,19 +176,31 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
       setSavingsGoals(prev => 
         prev.map(goal => goal._id === id ? updatedGoal : goal)
       );
+      toast({
+        title: "Success",
+        description: "Savings goal updated successfully",
+      });
     } catch (err: any) {
-      setError(err.response?.data?.message || "Error updating savings goal");
+      const errorMessage = err.response?.data?.message || "Error updating savings goal";
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
       console.error(err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Load initial data
+  // Load initial data when authenticated
   useEffect(() => {
-    fetchTransactions();
-    fetchSavingsGoals();
-  }, []);
+    if (isAuthenticated) {
+      fetchTransactions();
+      fetchSavingsGoals();
+    }
+  }, [isAuthenticated]);
 
   return (
     <BudgetContext.Provider
