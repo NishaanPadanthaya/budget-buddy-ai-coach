@@ -17,7 +17,7 @@ type Message = {
   timestamp: Date;
 };
 
-const welcomeMessage = {
+const welcomeMessage: Message = {
   _id: "welcome",
   content: "Hi there! I'm your Budget Buddy AI Assistant. How can I help with your finances today? You can ask me for spending insights, savings advice, or budgeting tips.",
   sender: "assistant",
@@ -70,7 +70,7 @@ const BudgetAssistant = () => {
   const handleSendMessage = async () => {
     if (!newMessage.trim() || isLoading) return;
 
-    const tempUserMessage = {
+    const tempUserMessage: Message = {
       _id: `temp-${Date.now()}`,
       content: newMessage,
       sender: "user",
@@ -93,16 +93,16 @@ const BudgetAssistant = () => {
           {
             ...response.data.userMessage,
             timestamp: new Date(response.data.userMessage.timestamp)
-          },
+          } as Message,
           {
             ...response.data.aiMessage,
             timestamp: new Date(response.data.aiMessage.timestamp)
-          }
+          } as Message
         ];
       });
     } catch (error) {
       console.error("Error sending message:", error);
-      const errorMessage = {
+      const errorMessage: Message = {
         _id: crypto.randomUUID(),
         content: "Sorry, I couldn't process your request. Please try again.",
         sender: "assistant",

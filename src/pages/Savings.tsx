@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   BarChart3, 
@@ -241,8 +240,7 @@ const SavingsGoalForm = ({ onClose }: { onClose: () => void }) => {
       targetAmount: target,
       currentAmount: starting,
       date: selectedDate,
-      color: selectedColor,
-      userId: "6452a8d2e4b0a7c3d9f0b1a2" // Using TEMP_USER_ID
+      color: selectedColor
     });
     
     toast({

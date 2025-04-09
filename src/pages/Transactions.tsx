@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Search, 
@@ -86,8 +85,7 @@ const TransactionForm = ({ onClose }: { onClose: () => void }) => {
       amount: isIncome ? parsedAmount : -parsedAmount,
       category,
       description,
-      aiCategorized: false,
-      userId: "6452a8d2e4b0a7c3d9f0b1a2" // Using TEMP_USER_ID
+      aiCategorized: false
     });
 
     toast({
@@ -193,7 +191,6 @@ const Transactions = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
 
-  // Filter transactions based on search term and active tab
   const filteredTransactions = transactions.filter((transaction) => {
     const matchesSearch = 
       transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
