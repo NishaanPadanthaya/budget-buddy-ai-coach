@@ -5,11 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import { AuthProvider } from "./context/AuthContext";
+import { BudgetProvider } from "./context/BudgetContext";
 import AppLayout from "./components/layouts/AppLayout";
-import ProtectedRoute from "./components/layouts/ProtectedRoute";
-import Login from "./pages/Auth/Login";
-import Register from "./pages/Auth/Register";
 import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
 import Savings from "./pages/Savings";
@@ -25,27 +22,20 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AuthProvider>
+        <BudgetProvider>
           <Routes>
-            {/* Auth routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            
-            {/* Protected routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/" element={<AppLayout />}>
-                <Route index element={<Dashboard />} />
-                <Route path="transactions" element={<Transactions />} />
-                <Route path="savings" element={<Savings />} />
-                <Route path="assistant" element={<BudgetAssistant />} />
-                <Route path="settings" element={<Settings />} />
-              </Route>
+            <Route path="/" element={<AppLayout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="transactions" element={<Transactions />} />
+              <Route path="savings" element={<Savings />} />
+              <Route path="assistant" element={<BudgetAssistant />} />
+              <Route path="settings" element={<Settings />} />
             </Route>
             
             {/* Not found route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </AuthProvider>
+        </BudgetProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

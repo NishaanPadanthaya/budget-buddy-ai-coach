@@ -1,11 +1,8 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/context/AuthContext";
 
 const Settings = () => {
-  const { user, logout } = useAuth();
-
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -24,16 +21,13 @@ const Settings = () => {
             <div className="grid gap-4">
               <div>
                 <h3 className="text-lg font-medium">Username</h3>
-                <p className="text-muted-foreground">{user?.username}</p>
+                <p className="text-muted-foreground">User</p>
               </div>
               <div>
                 <h3 className="text-lg font-medium">Email</h3>
-                <p className="text-muted-foreground">{user?.email}</p>
+                <p className="text-muted-foreground">user@example.com</p>
               </div>
             </div>
-            <Button variant="destructive" onClick={logout}>
-              Log Out
-            </Button>
           </CardContent>
         </Card>
 

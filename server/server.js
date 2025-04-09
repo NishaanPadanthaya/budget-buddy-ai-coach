@@ -8,7 +8,6 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 // Import routes
-const { router: authRoutes, verifyToken } = require('./routes/authRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const savingsRoutes = require('./routes/savingsRoutes');
 const aiAssistantRoutes = require('./routes/aiAssistantRoutes');
@@ -29,13 +28,10 @@ mongoose.connect(MONGODB_URI)
     process.exit(1); // Exit if can't connect to database
   });
 
-// Auth routes
-app.use('/api/auth', authRoutes);
-
-// Protected routes (require authentication)
-app.use('/api/transactions', verifyToken, transactionRoutes);
-app.use('/api/savings', verifyToken, savingsRoutes);
-app.use('/api/assistant', verifyToken, aiAssistantRoutes);
+// Enable API routes without auth
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/savings', savingsRoutes);
+app.use('/api/assistant', aiAssistantRoutes);
 
 // Default route
 app.get('/', (req, res) => {
